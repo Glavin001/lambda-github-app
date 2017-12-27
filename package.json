@@ -1,0 +1,26 @@
+{
+  "name": "lambda-github-app",
+  "version": "0.1.0",
+  "description": "GitHub App powered by AWS Lambda",
+  "main": "handler.js",
+  "dependencies": {
+    "crypto": "^1.0.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "deploy": "serverless deploy",
+    "logs": "serverless logs -f githubWebhookListener -t",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Glavin001/lambda-github-app.git"
+  },
+  "keywords": [],
+  "author": "Glavin Wiechert",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Glavin001/lambda-github-app/issues"
+  },
+  "homepage": "https://github.com/Glavin001/lambda-github-app#readme"
+}
