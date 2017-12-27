@@ -2,15 +2,21 @@
   "name": "lambda-github-app",
   "version": "0.1.0",
   "description": "GitHub App powered by AWS Lambda",
+  "private": true,
   "main": "handler.js",
   "dependencies": {
-    "crypto": "^1.0.1"
+    "crypto": "^1.0.1",
+    "lambda-git": "^0.1.1",
+    "mkdirp-promise": "^5.0.1"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "serverless": "^1.25.0"
+  },
   "scripts": {
     "deploy": "serverless deploy",
+    "deploy-f": "serverless deploy function -f githubWebhookListener",
     "logs": "serverless logs -f githubWebhookListener -t",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "SLS_DEBUG=* serverless invoke local --function githubWebhookListener --path ./test.json"
   },
   "repository": {
     "type": "git",
