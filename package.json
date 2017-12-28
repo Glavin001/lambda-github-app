@@ -6,6 +6,7 @@
   "main": "handler.js",
   "dependencies": {
     "crypto": "^1.0.1",
+    "github-app": "^3.2.0",
     "lambda-git": "^0.1.1",
     "mkdirp-promise": "^5.0.1"
   },
@@ -16,7 +17,7 @@
     "deploy": "serverless deploy",
     "deploy-f": "serverless deploy function -f githubWebhookListener",
     "logs": "serverless logs -f githubWebhookListener -t",
-    "test": "SLS_DEBUG=* serverless invoke local --function githubWebhookListener --path ./test.json"
+    "test": "SLS_DEBUG=* serverless invoke local --function githubWebhookListener --path ./test3.json"
   },
   "repository": {
     "type": "git",

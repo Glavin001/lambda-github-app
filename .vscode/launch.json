@@ -15,7 +15,7 @@
                 "--function",
                 "githubWebhookListener",
                 "--path",
-                "./test.json"
+                "./test3.json"
             ]
         }
     ]

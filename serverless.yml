@@ -25,6 +25,8 @@ provider:
     GITHUB_WEBHOOK_SECRET: lambda-github-app
     REPOS_DIR: /tmp/repos
     BRANCH_PREFIX: gitlam/
+    APP_ID: "7732"
+    CERT: lambda-github-app.pem
 
 # you can overwrite defaults here
 #  stage: dev

@@ -5,6 +5,8 @@ const crypto = require("crypto");
 const { exec } = require("child_process");
 const mkdirp = require("mkdirp-promise");
 const path = require("path");
+const createApp = require("github-app");
+const fs = require("fs");
 
 function signRequestBody(key, body) {
   return `sha1=${crypto
@@ -13,11 +15,18 @@ function signRequestBody(key, body) {
     .digest("hex")}`;
 }
 
-const { REPOS_DIR, BRANCH_PREFIX } = process.env;
+const { REPOS_DIR, BRANCH_PREFIX, APP_ID, CERT } = process.env;
 const token = process.env.GITHUB_WEBHOOK_SECRET;
+const app = createApp({
+  // Your app id
+  id: APP_ID,
+  // The private key for your app, which can be downloaded from the
+  // app's settings: https://github.com/settings/apps
+  cert: fs.readFileSync(CERT)
+});
 
 module.exports.githubWebhookListener = (event, context, callback) => {
-  var errMsg; // eslint-disable-line
+  let errMsg;
   const headers = event.headers;
   const sig = headers["X-Hub-Signature"];
   const githubEvent = headers["X-GitHub-Event"];
@@ -81,6 +90,15 @@ module.exports.githubWebhookListener = (event, context, callback) => {
   // Do custom stuff here with github event data
   // For more on events see https://developer.github.com/v3/activity/events/types/
 
+  if (githubEvent !== "push") {
+    return callback(null, {
+      statusCode: 200,
+      body: "Pong!"
+    });
+  }
+
+  console.log(JSON.stringify(event, null, 2));
+
   let payload = {};
   try {
     console.log(event.body);
@@ -94,53 +112,95 @@ module.exports.githubWebhookListener = (event, context, callback) => {
     });
     return;
   }
-  const { repository } = payload;
-  console.log(JSON.stringify(event, null, 2));
-  const repoName = repository.full_name;
-  const gitUrl = repository.git_url;
-  const headCommit = payload.after;
-  const repoPath = path.join(REPOS_DIR, repoName);
-  return rmDir(repoPath)
-    .catch(() => true)
-    .then(() => gitClone(repoName, gitUrl))
-    .then(({ stdout, stderr }) => {
-      console.log(stdout);
-      console.warn(stderr);
-    })
-    .then(() =>
-      gitCheckout(headCommit, {
-        cwd: repoPath
+
+  const { ref, repository, head_commit: headCommit } = payload;
+  const installationId = payload.installation.id;
+  if (!(repository && installationId)) {
+    errMsg = "No repository found.";
+    return callback(null, {
+      statusCode: 400,
+      headers: { "Content-Type": "text/plain" },
+      body: errMsg
+    });
+  }
+  return app.asInstallation(installationId).then(github =>
+    github.repos
+      .createStatus({
+        owner: repository.owner.name,
+        repo: repository.name,
+        sha: payload.after,
+        state: "pending",
+        context: "Unibeautify",
+        description: "Let's get beautiful!",
+        target_url: "https://github.com/Glavin001/lambda-github-app"
       })
-    )
-    .then(() =>
-      gitNewBranch(`${BRANCH_PREFIX}${headCommit}`, {
-        cwd: repoPath
-      })
-    )
-    .then(() => rmDir(repoPath))
-    .then(() =>
-      callback(null, {
-        statusCode: 200,
-        body: JSON.stringify("Done!")
-      })
-    )
-    .catch(err =>
-      rmDir(repoPath)
-        .then(() =>
-          callback(null, {
-            statusCode: 400,
-            headers: { "Content-Type": "text/plain" },
-            body: err.toString()
+      .then(() => {
+        const repoName = repository.full_name;
+        const gitUrl = repository.git_url;
+        const commitId = headCommit.id;
+        const repoPath = path.join(REPOS_DIR, repoName);
+        return rmDir(repoPath)
+          .catch(() => true)
+          .then(() => gitClone(repoName, gitUrl))
+          .then(({ stdout, stderr }) => {
+            console.log(stdout);
+            console.warn(stderr);
           })
-        )
-        .catch(err =>
-          callback(null, {
-            statusCode: 400,
-            headers: { "Content-Type": "text/plain" },
-            body: err.toString()
-          })
-        )
-    );
+          .then(() =>
+            gitFetch("origin", ref, {
+              cwd: repoPath
+            })
+          )
+          .then(() =>
+            gitCheckout(commitId, {
+              cwd: repoPath
+            })
+          )
+          .then(() =>
+            gitNewBranch(`${BRANCH_PREFIX}${commitId}`, {
+              cwd: repoPath
+            })
+          )
+          .then(() => rmDir(repoPath))
+          .then(() =>
+            github.repos.createStatus({
+              owner: repository.owner.name,
+              repo: repository.name,
+              sha: payload.after,
+              state: "success",
+              context: "Unibeautify",
+              description: "It's sooo beaauuutiful!!!",
+              target_url: "https://github.com/Glavin001/lambda-github-app"
+            })
+          )
+          .then(() =>
+            callback(null, {
+              statusCode: 200,
+              body: "Done!"
+            })
+          )
+          .catch(err => {
+            const cb = () =>
+              callback(null, {
+                statusCode: 400,
+                headers: { "Content-Type": "text/plain" },
+                body: err.toString()
+              });
+            return Promise.all([
+              github.repos.createStatus({
+                owner: repository.owner.name,
+                repo: repository.name,
+                sha: payload.after,
+                state: "failure",
+                context: "Unibeautify",
+                description: "Uh-oh!",
+                target_url: "https://github.com/Glavin001/lambda-github-app"
+              }),
+              rmDir(repoPath)
+            ]).then(cb, cb);
+          });
+      })
+  );
 };
 
 function gitClone(name, cloneUrl) {
@@ -184,6 +244,10 @@ function rmDir(dir) {
       return resolve(stdout);
     })
   );
+}
+
+function gitFetch(remote = "origin", ref, options) {
+  return gitCommand(`fetch ${remote} +${ref}`, options);
 }
 
 function gitCheckout(commit, options) {
