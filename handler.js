@@ -8,6 +8,8 @@ const path = require("path");
 const createApp = require("github-app");
 const fs = require("fs");
 
+const pkg = require("./package.json");
+
 function signRequestBody(key, body) {
   return `sha1=${crypto
     .createHmac("sha1", key)
@@ -130,9 +132,9 @@ module.exports.githubWebhookListener = (event, context, callback) => {
         repo: repository.name,
         sha: payload.after,
         state: "pending",
-        context: "Unibeautify",
-        description: "Let's get beautiful!",
-        target_url: "https://github.com/Glavin001/lambda-github-app"
+        context: pkg.name,
+        description: "Working on it!",
+        target_url: pkg.homepage,
       })
       .then(() => {
         const repoName = repository.full_name;
@@ -168,9 +170,9 @@ module.exports.githubWebhookListener = (event, context, callback) => {
               repo: repository.name,
               sha: payload.after,
               state: "success",
-              context: "Unibeautify",
-              description: "It's sooo beaauuutiful!!!",
-              target_url: "https://github.com/Glavin001/lambda-github-app"
+              context: pkg.name,
+              description: "Victory!!!",
+              target_url: pkg.homepage,
             })
           )
           .then(() =>
@@ -192,9 +194,9 @@ module.exports.githubWebhookListener = (event, context, callback) => {
                 repo: repository.name,
                 sha: payload.after,
                 state: "failure",
-                context: "Unibeautify",
+                context: pkg.name,
                 description: "Uh-oh!",
-                target_url: "https://github.com/Glavin001/lambda-github-app"
+                target_url: pkg.homepage,
               }),
               rmDir(repoPath)
             ]).then(cb, cb);
