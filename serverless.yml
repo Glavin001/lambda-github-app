@@ -24,9 +24,13 @@ provider:
   environment:
     GITHUB_WEBHOOK_SECRET: lambda-github-app
     REPOS_DIR: /tmp/repos
-    BRANCH_PREFIX: gitlam/
+    BRANCH_PREFIX: lambda-github-app/
     APP_ID: "7732"
     CERT: lambda-github-app.pem
+    README_PATH: README.md
+    GIT_AUTHOR_NAME: lambda-github-app[bot]
+    GIT_AUTHOR_EMAIL: lambda-github-app[bot]@users.noreply.github.com
+    STATUS_CONTEXT_PREFIX: continuous-integration/lambda-github-app
 
 # you can overwrite defaults here
 #  stage: dev
